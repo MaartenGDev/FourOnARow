@@ -1,125 +1,157 @@
 int columns = 3;
 int rows = 7;
 
-int gridBlockIndex = 0;
+GridBlock[][] playField = new GridBlock[rows][columns];
 
-GridBlockCollection gridBlocks = new GridBlockCollection(rows * columns);
+void setup() {
+  size(800, 800);
 
-void setup(){
-    size(800, 800);
-    
-    drawGrid(columns, rows);
+  drawGrid(columns, rows);
 }
 
-void draw(){}
-
-void mousePressed(){
-    for(int i = 0; i < gridBlocks.length(); i++){
-       
-        GridBlock gridBlock = gridBlocks.get(i);
-        // check if item is in block
-        
-        if(gridBlock != null){
-            boolean isInGridBlock = gridBlock.contains(mouseX, mouseY);
-            
-            if(isInGridBlock){
-                gridBlock.setFilled(true);
-                
-                println("Clicked row: " + gridBlock._row + ", column:" + gridBlock._column);
-            }
-        }
-        
-    }
-}
-
-
-void drawGrid(int columns, int rows){
-    int startX = 0;
-    int startY = 0;
-    int rowHeight = 50;
-    int rowWidth = 500;
-    int columnWidth = rowWidth / columns;
-    
-    for(int row = 0; row < rows; row++){
-       // for each row create column
-       
-       int rowY = row * rowHeight;
-       
-       fill(255);
-       
-       line(startX, rowY, rowWidth, rowY);
-       
-       // loop though column
-       
-       for(int column = 1; column <= columns; column++){
-          int columnX = column * columnWidth;
-          
-          GridBlock currentGridBlock = new GridBlock((column - 1) * columnWidth, rowY, columnX, rowY + rowHeight, row, column);
-          
-          // add item to array
-          gridBlocks.add(currentGridBlock);
-          gridBlockIndex += 1;
-          
-          // check if array is gridblock with grow and column
-          
-          line(columnX, rowY, columnX, rowHeight);
-       }
+void draw() {
+  for (int row = 0; row < rows; row++) {
+    for (int column = 0; column < columns; column++) {
      
+      
+      GridBlock gridBlock = playField[row][column];
+
+      if(!gridBlock.isFilled()) continue;
+
+      GridPoint topLeftGridPoint = gridBlock.getTopLeftPoint();
+      GridPoint bottomRightGridPoint = gridBlock.getBottomRightPoint();
+
+      int xOfCenterInGridBlock = topLeftGridPoint.getX() + ((bottomRightGridPoint.getX() - topLeftGridPoint.getX())  / 2);
+      int yOfCenterInGridBlock = topLeftGridPoint.getY() + ((bottomRightGridPoint.getY() - topLeftGridPoint.getY())  / 2);
+
+      fill(142, 68, 173);
+      ellipse(topLeftGridPoint.getX(), topLeftGridPoint.getY() , 2, 2);
+      
+      fill(255);
+      int gridBlockHeight = bottomRightGridPoint.getY() - topLeftGridPoint.getY();
+      int circleHeightAndWidth = gridBlockHeight - 20;
+
+      ellipse(xOfCenterInGridBlock, yOfCenterInGridBlock, circleHeightAndWidth, circleHeightAndWidth);
     }
+  }
 }
 
-class GridBlock{
-    boolean _isFilled = false;
-    int _x1;
-    int _y1;
-    int _x2;
-    int _y2;
-    
-    int _row;
-    int _column;
-    
-    GridBlock(int x1, int y1, int x2, int y2, int row, int column){
-      _x1 = x1;
-      _y1 = y1;
-      
-      _x2 = x2;
-      _y2 = y2;
-      
-      _row = row;
-      _column = column;
+void mousePressed() {
+  for (int row = 0; row < rows; row++) {
+    for (int column = 0; column < columns; column++) {
+      GridBlock gridBlock =  playField[row][column];
+
+      boolean isInGridBlock = gridBlock.contains(mouseX, mouseY);
+
+      if (isInGridBlock) {
+
+        gridBlock.setFilled(true);
+
+        println("Matched row: " + gridBlock._row + ", column:" + gridBlock._column);
+
+        int gridBlockRow = gridBlock.getRow();
+        int gridBlockColumn = gridBlock.getColumn();
+
+        GridBlock filledBlock = playField[gridBlockRow][gridBlockColumn];
+
+        filledBlock.setFilled(true);
+
+        playField[gridBlockRow][gridBlockColumn] = filledBlock;
+
+        break;
+      }
     }
-    
-    boolean contains(int x, int y){
-       boolean isInXRange = x >= _x1 && x <= _x2;
-       boolean isInYRange = y >= _y1 && y <= _y2;
-       
-       return isInXRange && isInYRange;
-    }
-    
-    void setFilled(boolean isFilled){
-      _isFilled = isFilled;
-    }
+  }
 }
 
+void drawGrid(int columns, int rows) {
+  int startX = 0;
+  int rowHeight = 50;
+  int rowWidth = 500;
+  int columnWidth = rowWidth / columns;
 
-class GridBlockCollection{
-  GridBlock[] _gridBlocks;
-  int _gridBlockIndex = 0;
-  
-  GridBlockCollection(int collectionLength){
-    _gridBlocks = new GridBlock[collectionLength];
+  for (int row = 0; row < rows; row++) {
+    int rowY = row * rowHeight;
+
+    fill(255);
+
+    line(startX, rowY, rowWidth, rowY);
+
+    for (int column = 0; column < columns; column++) {
+      int columnBottomRightX = (column + 1)* columnWidth;
+
+      GridPoint topLeftCorner = new GridPoint(column * columnWidth, row * rowHeight);
+      GridPoint bottomRightCorner = new GridPoint(columnBottomRightX, rowY + rowHeight);
+
+      GridBlock currentGridBlock = new GridBlock(topLeftCorner, bottomRightCorner, row, column);
+
+      playField[row][column] = currentGridBlock;
+
+      line(columnBottomRightX, rowY, columnBottomRightX, rowHeight);
+    }
+  }
+}
+
+class GridBlock {
+  boolean _isFilled = false;
+  GridPoint _topLeftPoint;
+  GridPoint _bottomRightPoint;
+
+  int _row;
+  int _column;
+
+  GridBlock(GridPoint topLeftCorner, GridPoint bottomRightCorner, int row, int column) {
+    _topLeftPoint = topLeftCorner;
+    _bottomRightPoint = bottomRightCorner;
+
+    _row = row;
+    _column = column;
+  }
+
+  boolean contains(int x, int y) {
+    boolean isInXRange = x >= _topLeftPoint.getX() && x <= _bottomRightPoint.getX();
+    boolean isInYRange = y >= _topLeftPoint.getY() && y <= _bottomRightPoint.getY();
+
+    return isInXRange && isInYRange;
+  }
+
+  int getRow() {
+    return _row;
+  }
+  int getColumn() {
+    return _column;
+  }
+
+  void setFilled(boolean isFilled) {
+    _isFilled = isFilled;
   }
   
-  void add(GridBlock gridBlock){
-     _gridBlocks[_gridBlockIndex] = gridBlock;
-     _gridBlockIndex += 1;
+  boolean isFilled(){
+     return _isFilled; 
   }
-  
-  int length(){
-     return _gridBlocks.length;
+
+  GridPoint getTopLeftPoint() {
+    return _topLeftPoint;
   }
-  
-  GridBlock get(int index){
-    return _gridBlocks[index];
+  GridPoint getBottomRightPoint() {
+    return _bottomRightPoint;
+  }
+}
+
+class GridPoint {
+  int _x;
+  int _y;
+
+  GridPoint(int x, int y) {
+    _x = x;
+    _y = y;
+  }
+
+  int getX() {
+    return _x;
+  }
+
+  int getY() {
+    return _y;
   }
 }
